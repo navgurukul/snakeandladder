@@ -90,6 +90,7 @@ const Board = () => {
   const renderBoard = () => {
     const board = [];
     let toggle = true;
+    
 
     for (let i = totalSquares; i > 0; i -= boardSize) {
       let row = [];
