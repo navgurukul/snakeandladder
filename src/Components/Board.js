@@ -29,8 +29,7 @@ const snakesAndLadders = {
 const BoardContainer = styled(Box)({
   display: 'flex',
   flexDirection: 'column',
-  width: '900px',
-
+  width: '700px',
   margin: 'auto',
   border: '2px solid #000',
 });
@@ -39,21 +38,28 @@ const Row = styled(Box)({
   display: 'flex',
 });
 
-const Square = styled(Box)(({ theme, isPlayer }) => ({
-  width: '15%',
-  paddingBottom: '10%',
+const Square = styled(Box)(({ theme, isPlayer1, isPlayer2, isPlayer3, isPlayer4 }) => ({
+  width: '20%',
+  padding:"20px",
   textAlign: 'center',
-  border: '2px solid #ddd',
+  border: '3px solid #ddd',
   boxSizing: 'border-box',
   position: 'relative',
-  backgroundColor: isPlayer ? '#f0a' : '#fff',
+  backgroundColor: isPlayer1 ? '#f0a' : isPlayer2 ? '#0f0' : isPlayer3 ? '#00f' : isPlayer4 ? '#ff0' : '#fff',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
 }));
 
+const DiceImage = styled('img')({
+  width: '50px',
+  height: '50px',
+  margin: '10px',
+});
+
 const Board = () => {
-  const [playerPosition, setPlayerPosition] = useState(1);
+  const [players, setPlayers] = useState([1, 1, 1, 1]);
+  const [currentPlayer, setCurrentPlayer] = useState(0);
   const [diceRoll, setDiceRoll] = useState(null);
 
   const rollDice = () => {
@@ -63,7 +69,7 @@ const Board = () => {
   };
 
   const movePlayer = (roll) => {
-    let newPosition = playerPosition + roll;
+    let newPosition = players[currentPlayer] + roll;
     if (newPosition > totalSquares) {
       newPosition = totalSquares;
     }
@@ -72,7 +78,13 @@ const Board = () => {
       newPosition = snakesAndLadders[newPosition];
     }
 
-    setPlayerPosition(newPosition);
+    setPlayers(prevPlayers => {
+      const newPlayers = [...prevPlayers];
+      newPlayers[currentPlayer] = newPosition;
+      return newPlayers;
+    });
+
+    setCurrentPlayer((currentPlayer + 1) % 4);
   };
 
   const renderBoard = () => {
@@ -82,15 +94,21 @@ const Board = () => {
     for (let i = totalSquares; i > 0; i -= boardSize) {
       let row = [];
       for (let j = 0; j < boardSize; j++) {
-        // let squareNumber = toggle ? i - j : i - (boardSize - 1) + j;
-        let squareNumber = i - (boardSize - 1) + j;
+        let squareNumber = toggle ? i - j : i - (boardSize - 1) + j;
         row.push(
-          <Square key={squareNumber} isPlayer={playerPosition === squareNumber} style={{width:"500px"}}>
+          <Square
+            key={squareNumber}
+            isPlayer1={players[0] === squareNumber}
+            isPlayer2={players[1] === squareNumber}
+            isPlayer3={players[2] === squareNumber}
+            isPlayer4={players[3] === squareNumber}
+            
+          >
             {squareNumber}
           </Square>
         );
       }
-      // toggle = !toggle;
+      toggle = !toggle;
       board.push(<Row key={i}>{row}</Row>);
     }
 
@@ -98,21 +116,27 @@ const Board = () => {
   };
 
   return (
-    <Container maxWidth="lg"> 
-    <Box textAlign="center" p={3} >
-      <Paper elevation={3} style={{ padding: '20px', marginBottom: '15px' }}>
-      <Typography variant="h4" gutterBottom>Snake and Ladder</Typography>
-      
-      <BoardContainer >{renderBoard()}</BoardContainer>
-      <Button variant="contained" color="primary" onClick={rollDice}>
-        Roll Dice
-      </Button>
-
-      {diceRoll && <Typography>You rolled a {diceRoll}</Typography>}
-      <Typography>Player position: {playerPosition}</Typography>
-      </Paper>
-    </Box>
-    </Container>
+    <Container maxWidth="lg">
+      <Box textAlign="center" p={3}>
+        <Paper elevation={3}>
+        <Typography variant="h4" gutterBottom>Snake and Ladder</Typography>
+        <BoardContainer>{renderBoard()}</BoardContainer>
+        <Button variant="contained" color="primary" onClick={rollDice}>
+          Roll Dice
+        </Button>
+        {diceRoll && (
+          <>
+            <Typography>You rolled a {diceRoll}</Typography>
+            <DiceImage src={`/dice${diceRoll}.png`} alt={`Dice showing ${diceRoll}`} />
+          </>
+        )}
+        <Typography>Current Player: {currentPlayer + 1}</Typography>
+        {players.map((position, index) => (
+          <Typography key={index}>Player {index + 1} position: {position}</Typography>
+        ))}
+        </Paper>
+      </Box>
+      </Container>
   );
 };
 
