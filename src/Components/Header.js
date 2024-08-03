@@ -4,7 +4,11 @@ import { AppBar, Toolbar, Typography } from '@mui/material';
 
 function Header() {
   return (
-    <AppBar position="static">
+    <AppBar position="fixed"
+    style={{
+      backgroundColor: "white",
+      color: "black",
+    }}>
       <Toolbar>
         <Typography variant="h6">
           Snake & Ladder Game

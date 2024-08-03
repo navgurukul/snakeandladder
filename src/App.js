@@ -13,7 +13,7 @@ function App() {
         <main>
           <AppRoutes />
         </main>
-        <Footer />
+        {/* <Footer /> */}
       </div>
     </Router>
   );
