@@ -1,44 +1,14 @@
 import React, { useState } from 'react';
 import { Container, Box, Button, Typography, Dialog, DialogActions, DialogContent, DialogTitle, RadioGroup, FormControlLabel, Radio } from '@mui/material';
+import { questions } from './data';
 import background from "../assert/animeHome.jpg";
 import mic from "../assert/mic.jpg";
 import mouse from "../assert/heros.jpeg";
 import heros from "../assert/ironman.jpg";
 import ironman from "../assert/mouse.jpg";
-import fade from "../assert/fade-removebg-preview.png"
-const boardSize = 10; // 10 rows and 10 columns
-const questionTiles = [6, 18, 32, 62, 83, 77, 92, 99]; // Question tiles
-
-const questions = [
-  {
-    question: "What is the capital of France?",
-    options: ["Berlin", "Madrid", "Paris", "Rome"],
-    correctAnswer: "Paris",
-    interestingAnswer: "Berlin",
-    goodAnswer: "Madrid",
-    points: { correct: 8, good: 6, interesting: 4, wrong: -4 }
-  },
-  {
-    question: "You have the chance to cheat on a test without getting caught. What should you do?",
-    options: ["Don't cheat and rely on your own knowledge.", "Encourage others not to cheat as well.",
-      "Avoid cheating, but don't mention it to others.", "Cheat because grades are important."],
-    correctAnswer: "Don't cheat and rely on your own knowledge",
-    interestingAnswer: "Encourage others not to cheat as well",
-    goodAnswer: "Avoid cheating, but don't mention it to others",
-    points: { correct: 8, good: 6, interesting: 4, wrong: -4 }
-  },
-  {
-    question: "You notice a colleague taking office supplies for personal use. What should you do??",
-    options: ["Report the behavior to your supervisor or HR.", "Confront the colleague privately and suggest they return the supplies.",
-      "Remind the colleague that using office supplies for personal use is against company policy.", "Ignore the behavior; it's not your business."],
-    correctAnswer: "Report the behavior to your supervisor or HR.",
-    interestingAnswer: "Confront the colleague privately and suggest they return the supplies.",
-    goodAnswer: "Remind the colleague that using office supplies for personal use is against company policy.",
-    points: { correct: 8, interesting: 4, good: 6, wrong: -4 }
-  },
-  // Add more questions with varying points for correct, good, interesting, and wrong answers
-];
-
+import fade from "../assert/fade-removebg-preview.png";
+const boardSize = 10;
+const questionTiles = [6, 17,26, 39,43,56, 62, 85, 74, 92];
 function GameBoard() {
   const [players, setPlayers] = useState([{ pos: 0 }, { pos: 0 }, { pos: 0 }, { pos: 0 }]);
   const [currentPlayer, setCurrentPlayer] = useState(0);
@@ -46,48 +16,68 @@ function GameBoard() {
   const [questionIndex, setQuestionIndex] = useState(null);
   const [selectedOption, setSelectedOption] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [isMoving, setIsMoving] = useState(false); // Added to prevent double actions
-
+  const [isMoving, setIsMoving] = useState(false);
+  const [finishedPlayers, setFinishedPlayers] = useState([]);
   const rollDice = () => {
-    if (isMoving) return; // Prevent multiple rolls at the same time
+    if (isMoving || finishedPlayers.length === players.length) return;
     setIsMoving(true);
-
     const roll = Math.floor(Math.random() * 6) + 1;
     setDiceRoll(roll);
     let newPosition = players[currentPlayer].pos + roll;
-
-    // Handle board boundaries
     if (newPosition > 100) {
       newPosition = 100;
     }
-
     movePlayerStepByStep(players[currentPlayer].pos, newPosition);
   };
-
   const movePlayerStepByStep = (start, end) => {
     if (start === end) {
-      // Check if the player landed on a question tile
       if (questionTiles.includes(end)) {
         setQuestionIndex(Math.floor(Math.random() * questions.length));
         setDialogOpen(true);
       } else {
+        const playerIndex = currentPlayer;
+        const updatedPlayers = [...players];
+        updatedPlayers[playerIndex].pos = end;
+        setPlayers(updatedPlayers);
+        moveToNextPlayer();
         setIsMoving(false);
-        setCurrentPlayer((currentPlayer + 1) % 4);
       }
       return;
     }
-
+    const step = start < end ? 1 : -1;
     setTimeout(() => {
-      setPlayers(players.map((p, i) => (i === currentPlayer ? { ...p, pos: start + 1 } : p)));
-      movePlayerStepByStep(start + 1, end);
+      setPlayers((prevPlayers) => {
+        const updatedPlayers = [...prevPlayers];
+        updatedPlayers[currentPlayer] = { ...updatedPlayers[currentPlayer], pos: start + step };
+        return updatedPlayers;
+      });
+      if (start + 1 === 100) {
+        const playerIndex = currentPlayer;
+        handleFinish(playerIndex);
+        if (finishedPlayers.length + 1 === players.length) {
+        }
+        setIsMoving(false);
+        return;
+      }
+      movePlayerStepByStep(start + step, end);
     }, 300);
   };
-
+  const handleFinish = (playerIndex) => {
+    if (!finishedPlayers.some(p => p.playerIndex === playerIndex)) {
+      const newFinishOrder = finishedPlayers.length;
+      setFinishedPlayers([...finishedPlayers, { playerIndex, finishOrder: newFinishOrder }]);
+    }
+  };
+  const moveToNextPlayer = () => {
+    let nextPlayer = (currentPlayer + 1) % players.length;
+    while (finishedPlayers.some(p => p.playerIndex === nextPlayer)) {
+      nextPlayer = (nextPlayer + 1) % players.length;
+    }
+    setCurrentPlayer(nextPlayer);
+  };
   const handleAnswer = () => {
     const question = questions[questionIndex];
     let movement;
-
-    // Determine points based on the selected option
     if (selectedOption === question.correctAnswer) {
       movement = question.points.correct;
     } else if (selectedOption === question.goodAnswer) {
@@ -97,19 +87,26 @@ function GameBoard() {
     } else {
       movement = question.points.wrong;
     }
-
-    // Calculate new position
     let newPosition = players[currentPlayer].pos + movement;
-
-    // Ensure the new position doesn't go below 1
     if (newPosition < 1) newPosition = 1;
-
     setDialogOpen(false);
     setSelectedOption('');
     setIsMoving(true);
     movePlayerStepByStep(players[currentPlayer].pos, newPosition);
   };
-
+  const getFinishOrderMessage = (order) => {
+    if (order === 0) {
+      return "is the first winner!:partying_face::partying_face:";
+    } else if (order === 1) {
+      return "is the second winner!:partying_face::partying_face:";
+    } else if (order === 2) {
+      return "is the third winner!:partying_face::partying_face:";
+    } else if (order === 3) {
+      return "You lost the game:innocent:";
+    } else {
+      return "";
+    }
+  };
   const renderBoard = () => {
     let board = [];
     for (let row = boardSize - 1; row >= 0; row--) {
@@ -119,12 +116,9 @@ function GameBoard() {
           row % 2 === 0
             ? row * boardSize + col + 1
             : (row + 1) * boardSize - col;
-
-        // Find all players on this cell
         const playersOnCell = players
           .map((p, index) => p.pos === cellNumber ? index : null)
           .filter(index => index !== null);
-
         cells.push(
           <Box
             key={cellNumber}
@@ -135,7 +129,7 @@ function GameBoard() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundImage: questionTiles.includes(cellNumber) && `url(${fade})` ,
+              backgroundImage: questionTiles.includes(cellNumber) && `url(${fade})`,
               backgroundColor: questionTiles.includes(cellNumber) ? 'rgba(0, 0, 0, 0.5)' : 'transparent',
               backgroundSize: 'cover',
               position: 'relative',
@@ -146,8 +140,8 @@ function GameBoard() {
                 <Box
                   key={playerIndex}
                   sx={{
-                    width: 50, // Adjust the image size here
-                    height: 50, // Adjust the image size here
+                    width: 50,
+                    height: 50,
                     backgroundImage: `url(${[
                       mic,
                       heros,
@@ -157,9 +151,9 @@ function GameBoard() {
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
                     position: 'absolute',
-                    top: `${1 * imgIndex}px`, // Adjust vertical offset for stacking
-                    left: `${30 * imgIndex}px`, // Adjust horizontal offset for stacking
-                    zIndex: playersOnCell.length - imgIndex, // Ensure proper stacking
+                    top: `${1 * imgIndex}px`,
+                    left: `${30 * imgIndex}px`,
+                    zIndex: playersOnCell.length - imgIndex,
                     borderRadius: '50%',
                   }}
                 />
@@ -167,8 +161,8 @@ function GameBoard() {
               playersOnCell.length === 1 && (
                 <Box
                   sx={{
-                    width: 70, // Adjust the image size here
-                    height: 70, // Adjust the image size here
+                    width: 70,
+                    height: 70,
                     borderRadius: '50%',
                     backgroundImage: `url(${[
                       mic,
@@ -178,7 +172,6 @@ function GameBoard() {
                     ][playersOnCell[0]]})`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
-                    // position: 'absolute',
                     backgroundRepeat: "no-repeat",
                     color: playersOnCell.length !== -1 ? 'rgba(0, 0, 0, 0.5)' : 'transparent',
                   }}
@@ -197,9 +190,8 @@ function GameBoard() {
     }
     return board;
   };
-
   return (
-    <Container maxWidth="md">
+    <Container maxWidth="md" style={{marginTop:'20px'}} >
       <Typography variant="h4" align="center" gutterBottom>
         Snake & Ladder Game
       </Typography>
@@ -241,8 +233,8 @@ function GameBoard() {
                   width: "50px",
                   height: "50px",
                   border: currentPlayer === index ? '2px solid yellow' : 'none',
-                  boxShadow: currentPlayer === index ? '0 0 10px yellow' : 'none', // Add shadow effect
-                  transform: currentPlayer === index ? 'scale(1.2)' : 'none', // Increase size
+                  boxShadow: currentPlayer === index ? '0 0 10px yellow' : 'none',
+                  transform: currentPlayer === index ? 'scale(1.2)' : 'none',
                   borderRadius: '50%',
                 }}
               />
@@ -251,25 +243,42 @@ function GameBoard() {
           ))}
         </Box>
       </Box>
-
-      <Dialog open={dialogOpen}>
-        <DialogTitle>Fate Junction Question</DialogTitle>
+      <Box
+        style={{
+          position: 'absolute',
+          right: '100px',
+          top: '200px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-end'
+        }}
+      >
+        {finishedPlayers.map((p, index) => (
+          <Typography key={index} variant="body1" style={{ color: "#757575", fontSize: "20px" }}>
+            Player {p.playerIndex + 1} {getFinishOrderMessage(p.finishOrder)}
+          </Typography>
+        ))}
+      </Box>
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
+        <DialogTitle>Question</DialogTitle>
         <DialogContent>
-          <Typography>{questions[questionIndex]?.question}</Typography>
-          <RadioGroup value={selectedOption} onChange={(e) => setSelectedOption(e.target.value)}>
-            {questions[questionIndex]?.options.map((option, index) => (
-              <FormControlLabel key={index} value={option} control={<Radio />} label={option} />
+          <Typography variant="body1">{questions[questionIndex]?.question}</Typography>
+          <RadioGroup
+            aria-label="question"
+            value={selectedOption}
+            onChange={(e) => setSelectedOption(e.target.value)}
+          >
+            {questions[questionIndex]?.options.map((option) => (
+              <FormControlLabel key={option} value={option} control={<Radio />} label={option} />
             ))}
           </RadioGroup>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleAnswer} variant="contained" color="primary">
-            Submit
-          </Button>
+          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleAnswer}>Submit</Button>
         </DialogActions>
       </Dialog>
     </Container>
   );
 }
-
 export default GameBoard;

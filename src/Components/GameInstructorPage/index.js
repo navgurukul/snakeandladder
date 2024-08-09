@@ -8,7 +8,7 @@ function GameInstructorPage() {
       <h1>Game Instructor</h1>
       <p>Information about Fate Junc, points system, etc.</p>
       <Link to="/create-room">Create Room</Link>
-      <Link to="/choose-token">Join Room</Link>
+      
     </div>
   );
 }
